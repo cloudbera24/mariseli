@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bera md session</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: black;
+      overflow: hidden;
+    }
+
+    /* Background video styling */
+    video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1; /* Place the video behind content */
+    }
+
+    .btn {
+      --color: white;
+      --color2: #0E0E0E;
+      width: 260px;
+      padding: 0.8em 1.75em;
+      background-color: transparent;
+      border-radius: 50px;
+      border: 3px solid transparent;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      z-index: 1;
+      font-weight: 300;
+      font-size: 17px;
+      font-family: 'Roboto', 'Segoe UI', sans-serif;
+      text-transform: uppercase;
+      color: var(--color);
+      margin-bottom: 24px;
+      transition: 0.5s;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+      background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff, #00ffff);
+      background-size: 400%;
+      z-index: -1;
+      border-radius: 50px; /* Ensures rounded corners match the button */
+      animation: neon-border 4s linear infinite;
+    }
+
+    .btn:hover {
+      color: black;
+    }
+
+    .btn:active {
+      filter: brightness(0.7);
+      transform: scale(0.98);
+    }
+
+    @keyframes neon-border {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background video -->
+  <video autoplay loop muted>
+    <source src="https://files.catbox.moe/smm57p.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+<button onclick="window.open(`/pair`)" class="btn">Pair</button>
+  <button onclick="window.open('https://deploy-fld5.vercel.app/')" class="btn">Bot Features</button>
+  <button onclick="window.open(`https://github.com/Berabruce/BERA-MD/fork`)" class="btn">BERA MD</button>
+  <button onclick="window.open(`https://github.com/Berabruce/TREX-MD/fork`)" class="btn">TREX MD</button>
+  <button onclick="window.open(`https://whatsapp.com/channel/0029VajJoCoLI8YePbpsnE3q`)" class="btn">Support</button>
+  <button onclick="window.open(`https://wa.me//+254743982206`)" class="btn">Chat Bera</button>
+  <button onclick="window.open(`https://wa.me//+254740007567`)" class="btn">Session Coder</button>
+</body>
+</html>
