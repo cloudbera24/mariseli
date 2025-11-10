@@ -1,6 +1,6 @@
-import { storage, File } from 'megajs';
+import mega from 'megajs';
 
-// Use environment variables for credentials (recommended)
+// Use environment variables for credentials
 const auth = {
     email: process.env.MEGA_EMAIL || 'permaunban@gmail.com',
     password: process.env.MEGA_PASSWORD || 'umar165123719.',
@@ -15,7 +15,7 @@ async function initializeStorage() {
     
     return new Promise((resolve, reject) => {
         try {
-            megaStorage = new storage(auth, (error) => {
+            megaStorage = new mega.Storage(auth, (error) => {
                 if (error) {
                     console.error('Mega storage initialization failed:', error);
                     reject(error);
@@ -70,7 +70,7 @@ export const upload = async (stream, filename) => {
 export const download = async (url) => {
     try {
         return new Promise((resolve, reject) => {
-            File.fromURL(url).loadAttributes((error, file) => {
+            mega.File.fromURL(url).loadAttributes((error, file) => {
                 if (error) {
                     reject(error);
                     return;
