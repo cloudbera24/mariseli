@@ -26,6 +26,12 @@ router.get('/', async (req, res) => {
     let retryCount = 0;
     const MAX_RETRIES = 5;
 
+    // Enhanced cleanup function for this specific session
+    const cleanupSession = () => {
+        removeFile(dirs);
+        console.log('Session file removed:', dirs);
+    };
+
     // Enhanced session initialization function
     async function initiateSession() {
         const { state, saveCreds } = await useMultiFileAuthState(dirs);
@@ -62,38 +68,52 @@ router.get('/', async (req, res) => {
                 if (connection === "open") {
                     console.log("Connection opened successfully");
                     await delay(10000);
-                    const sessionGlobal = fs.readFileSync(dirs + '/creds.json');
+                    
+                    try {
+                        const sessionGlobal = fs.readFileSync(dirs + '/creds.json');
 
-                    // Helper to generate a random Mega file ID
-                    function generateRandomId(length = 6, numberLength = 4) {
-                        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-                        let result = '';
-                        for (let i = 0; i < length; i++) {
-                            result += characters.charAt(Math.floor(Math.random() * characters.length));
+                        // Helper to generate a random Mega file ID
+                        function generateRandomId(length = 6, numberLength = 4) {
+                            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                            let result = '';
+                            for (let i = 0; i < length; i++) {
+                                result += characters.charAt(Math.floor(Math.random() * characters.length));
+                            }
+                            const number = Math.floor(Math.random() * Math.pow(10, numberLength));
+                            return `${result}${number}`;
                         }
-                        const number = Math.floor(Math.random() * Math.pow(10, numberLength));
-                        return `${result}${number}`;
+
+                        // Upload session file to Mega
+                        const megaUrl = await upload(fs.createReadStream(`${dirs}/creds.json`), `${generateRandomId()}.json`);
+
+                        // Add "UMAR=" prefix to the session ID
+                        let stringSession = `${megaUrl.replace('https://mega.nz/file/', '')}`;
+
+                        // Send the session ID to the target number
+                        const userJid = jidNormalizedUser(num + '@s.whatsapp.net');
+                        await Um4r719.sendMessage(userJid, { text: stringSession });
+
+                        // Send confirmation message
+                        await Um4r719.sendMessage(userJid, { 
+                            text: '*Hello There` \n\n*Use This Code to Deploy Your Bot Or Share With Your Deployer To Connect Your Bot.*\n\n*When Deploying, Paste the Session on Config Var*\n\n*Thanks For Choosing This Bot*\n\n*Support By Joining other Followers:-https://whatsapp.com/channel/0029VajJoCoLI8YePbpsnE3q*\n\n> *Marisel Coded This* \n' 
+                        });
+
+                        // Clean up session after use
+                        await delay(100);
+                        cleanupSession();
+                        
+                        // Graceful shutdown
+                        await Um4r719.ws.close();
+                        process.exit(0);
+                        
+                    } catch (uploadError) {
+                        console.error('Error during upload or messaging:', uploadError);
+                        cleanupSession();
+                        if (!res.headersSent) {
+                            res.status(500).send({ message: 'Upload failed' });
+                        }
                     }
-
-                    // Upload session file to Mega
-                    const megaUrl = await upload(fs.createReadStream(`${dirs}/creds.json`), `${generateRandomId()}.json`);
-
-                    // Add "UMAR=" prefix to the session ID
-                    let stringSession = `${megaUrl.replace('https://mega.nz/file/', '')}`;
-
-                    // Send the session ID to the target number
-                    const userJid = jidNormalizedUser(num + '@s.whatsapp.net');
-                    await Um4r719.sendMessage(userJid, { text: stringSession });
-
-                    // Send confirmation message
-                    await Um4r719.sendMessage(userJid, { 
-                        text: '*Hello There` \n\n*Use This Code to Deploy Your Bot Or Share With Your Deployer To Connect Your Bot.*\n\n*When Deploying, Paste the Session on Config Var*\n\n*Thanks For Choosing This Bot*\n\n*Support By Joining other Followers:-https://whatsapp.com/channel/0029VajJoCoLI8YePbpsnE3q*\n\n> *Marisel Coded This* \n' 
-                    });
-
-                    // Clean up session after use
-                    await delay(100);
-                    removeFile(dirs);
-                    process.exit(0);
+                    
                 } else if (connection === 'close' && lastDisconnect && lastDisconnect.error && lastDisconnect.error.output.statusCode !== 401) {
                     console.log('Connection closed unexpectedly:', lastDisconnect.error);
                     retryCount++;
@@ -104,12 +124,16 @@ router.get('/', async (req, res) => {
                         initiateSession();
                     } else {
                         console.log('Max retries reached, stopping reconnection attempts.');
-                        await res.status(500).send({ message: 'Unable to reconnect after multiple attempts.' });
+                        cleanupSession();
+                        if (!res.headersSent) {
+                            await res.status(500).send({ message: 'Unable to reconnect after multiple attempts.' });
+                        }
                     }
                 }
             });
         } catch (err) {
             console.error('Error initializing session:', err);
+            cleanupSession();
             if (!res.headersSent) {
                 res.status(503).send({ code: 'Service Unavailable' });
             }
@@ -119,17 +143,19 @@ router.get('/', async (req, res) => {
     await initiateSession();
 });
 
-// Ensure session cleanup on exit or uncaught exceptions
-process.on('exit', () => {
-    removeFile(dirs);
-    console.log('Session file removed.');
-});
-
-// Catch uncaught errors and handle session cleanup
+// Global error handlers with safe cleanup
 process.on('uncaughtException', (err) => {
     console.error('Uncaught exception:', err);
-    removeFile(dirs);
-    process.exit(1);  // Ensure the process exits with error
+    // We can't access 'dirs' here since it's request-specific
+    // But we can clean up common session directories
+    const commonDirs = ['./session', './auth_info'];
+    commonDirs.forEach(dir => removeFile(dir));
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    const commonDirs = ['./session', './auth_info'];
+    commonDirs.forEach(dir => removeFile(dir));
 });
 
 export default router;
